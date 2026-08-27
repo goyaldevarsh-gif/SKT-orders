@@ -186,86 +186,93 @@
             const pageHeight = doc.internal.pageSize.getHeight();
             let yPosition = 15;
             
-            // Header
+            // ========== HEADER ==========
             doc.setFillColor(220, 20, 20);
-            doc.rect(0, 0, pageWidth, 25, 'F');
+            doc.rect(0, 0, pageWidth, 30, 'F');
             
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
+            doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
             doc.text('SHRI KRISHNA TEXTILES', 15, 12);
-            doc.setFontSize(10);
-            doc.text('SKT Orders', 15, 20);
             
-            yPosition = 35;
-            doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
             doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('SKT Orders - Sample Collection', 15, 22);
+            
+            // ========== ORDER DETAILS ==========
+            yPosition = 40;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
             
             doc.setFont(undefined, 'bold');
             doc.text('Party Name:', 15, yPosition);
             doc.setFont(undefined, 'normal');
-            doc.text(order.partyName, 60, yPosition);
+            doc.text(order.partyName, 50, yPosition);
             
-            yPosition += 8;
+            yPosition += 7;
             doc.setFont(undefined, 'bold');
             doc.text('Order #:', 15, yPosition);
             doc.setFont(undefined, 'normal');
-            doc.text(order.orderNumber.toString(), 60, yPosition);
+            doc.text(order.orderNumber.toString(), 50, yPosition);
             
-            yPosition += 8;
+            yPosition += 7;
             doc.setFont(undefined, 'bold');
             doc.text('Date:', 15, yPosition);
             doc.setFont(undefined, 'normal');
-            doc.text(order.date, 60, yPosition);
+            doc.text(order.date, 50, yPosition);
             
+            // ========== SAMPLES SECTION ==========
             yPosition += 15;
-            doc.setFillColor(240, 240, 240);
-            doc.rect(15, yPosition - 5, pageWidth - 30, 7, 'F');
-            
-            doc.setFont(undefined, 'bold');
-            doc.setTextColor(220, 20, 20);
-            doc.text('S.No.', 15, yPosition);
-            doc.text('Sample Name', 30, yPosition);
-            doc.text('Quantity (Sets)', 130, yPosition);
-            
-            yPosition += 10;
-            doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
             
             order.samples.forEach((sample, index) => {
-                if (yPosition > pageHeight - 40) {
+                // Check if we need new page
+                if (yPosition > pageHeight - 65) {
                     doc.addPage();
                     yPosition = 15;
                 }
                 
-                doc.text((index + 1).toString(), 15, yPosition);
-                doc.text(sample.name, 30, yPosition);
-                doc.text(sample.quantity.toString(), 130, yPosition);
+                const itemStartY = yPosition;
                 
-                yPosition += 8;
-                
+                // ===== SAMPLE IMAGE (45x45mm square) =====
                 if (sample.photo || sample.photoPreview) {
-                    if (yPosition > pageHeight - 50) {
-                        doc.addPage();
-                        yPosition = 15;
-                    }
                     try {
                         const photoData = sample.photo || sample.photoPreview;
-                        doc.addImage(photoData, 'JPEG', 15, yPosition, 40, 30);
-                        yPosition += 35;
+                        const imgSize = 45;
+                        doc.addImage(photoData, 'JPEG', 15, yPosition, imgSize, imgSize);
                     } catch (e) {
-                        console.log('Could not add image');
+                        doc.setFillColor(220, 220, 220);
+                        doc.rect(15, yPosition, 45, 45);
                     }
                 }
                 
+                // ===== SAMPLE INFO (Right side of image) =====
+                const textX = 65;
+                
+                // Item Number + Name (BOLD & BIG)
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${index + 1}. ${sample.name}`, textX, yPosition + 10);
+                
+                // Quantity Type and Value (BOLD, second line)
+                const quantityType = sample.quantityType || 'Set';
+                doc.setFontSize(11);
+                doc.text(`${quantityType}: ${sample.quantity}`, textX, yPosition + 20);
+                
+                yPosition = itemStartY + 50;
+                
+                // Add separator line
+                doc.setDrawColor(220, 220, 220);
+                doc.line(15, yPosition, pageWidth - 15, yPosition);
                 yPosition += 5;
             });
             
-            yPosition = pageHeight - 10;
-            doc.setFontSize(9);
+            // ========== FOOTER ==========
+            yPosition = pageHeight - 12;
+            doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text('Generated by SKT Orders App', 15, yPosition);
+            doc.setFont(undefined, 'normal');
+            doc.text('Generated by SKT Orders App | ' + new Date().toLocaleDateString(), 15, yPosition);
             
             return doc;
         };
@@ -400,7 +407,7 @@
             const [savedSamples, setSavedSamples] = useState([]);
             const cameraRef = useRef(null);
             const fileInputRef = useRef(null);
-            const [newSample, setNewSample] = useState({ name: '', quantity: '', photo: null, photoPreview: null });
+            const [newSample, setNewSample] = useState({ name: '', quantity: '', quantityType: 'Set', photo: null, photoPreview: null });
 
             useEffect(() => {
                 loadSamples();
@@ -433,7 +440,7 @@
                 }
                 
                 setSamples([...samples, { ...newSample, id: Date.now() }]);
-                setNewSample({ name: '', quantity: '', photo: null, photoPreview: null });
+                setNewSample({ name: '', quantity: '', quantityType: 'Set', photo: null, photoPreview: null });
                 setShowSampleForm(false);
             };
 
@@ -480,15 +487,15 @@
             };
 
             return (
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                     <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
                         <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
                             ← BACK
                         </button>
-                        <h1 className="text-xl font-bold flex-1">New Order</h1>
+                        <h1 className="text-xl font-bold flex-1 truncate">New Order</h1>
                     </div>
 
-                    <div className="p-4 max-w-2xl mx-auto pb-20">
+                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-24">
                         <div className="bg-white rounded-2xl p-5 shadow mb-4">
                             <h2 className="text-lg font-bold text-gray-800 mb-4">📋 Order Details</h2>
                             
@@ -526,7 +533,7 @@
                                             )}
                                             <div className="flex-1">
                                                 <p className="font-semibold text-gray-800">{idx + 1}. {sample.name}</p>
-                                                <p className="text-sm text-gray-600">Qty: <span className="font-bold">{sample.quantity} Sets</span></p>
+                                                <p className="text-sm text-gray-600">Qty: <span className="font-bold">{sample.quantity} {sample.quantityType || 'Set'}</span></p>
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteSample(sample.id)}
@@ -555,19 +562,27 @@
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="flex gap-2 mb-3">
+                                            <div className="mb-3 space-y-2">
                                                 <button
                                                     onClick={() => cameraRef.current?.click()}
-                                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
+                                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-4 rounded-lg text-lg transition"
                                                 >
-                                                    📷 Camera
+                                                    📷 CAMERA
                                                 </button>
-                                                <button
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
-                                                >
-                                                    📁 Gallery
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => cameraRef.current?.click()}
+                                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
+                                                    >
+                                                        📷 Camera
+                                                    </button>
+                                                    <button
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
+                                                    >
+                                                        📁 Gallery
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
                                         <input
@@ -614,14 +629,24 @@
                                     )}
 
                                     <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity (Sets) *</label>
-                                        <input
-                                            type="number"
-                                            value={newSample.quantity}
-                                            onChange={(e) => setNewSample({ ...newSample, quantity: e.target.value })}
-                                            placeholder="e.g., 500"
-                                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none"
-                                        />
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                value={newSample.quantity}
+                                                onChange={(e) => setNewSample({ ...newSample, quantity: e.target.value })}
+                                                placeholder="e.g., 500"
+                                                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none"
+                                            />
+                                            <select
+                                                value={newSample.quantityType || 'Set'}
+                                                onChange={(e) => setNewSample({ ...newSample, quantityType: e.target.value })}
+                                                className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none font-semibold"
+                                            >
+                                                <option value="Set">Set</option>
+                                                <option value="Pieces">Pieces</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-2">
@@ -710,7 +735,7 @@
 
             if (selectedOrder) {
                 return (
-                    <div className="min-h-screen bg-gray-50">
+                    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                         <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
                             <button
                                 onClick={() => setSelectedOrder(null)}
@@ -718,10 +743,10 @@
                             >
                                 ← BACK
                             </button>
-                            <h1 className="text-xl font-bold flex-1">Order #{selectedOrder.orderNumber}</h1>
+                            <h1 className="text-xl font-bold flex-1 truncate">Order #{selectedOrder.orderNumber}</h1>
                         </div>
 
-                        <div className="p-4 max-w-2xl mx-auto pb-20">
+                        <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-24">
                             <div className="bg-white rounded-2xl p-5 shadow mb-4">
                                 <div className="mb-4">
                                     <p className="text-sm text-gray-600 font-semibold">👥 PARTY NAME</p>
@@ -783,15 +808,15 @@
             }
 
             return (
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                     <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
                         <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
                             ← BACK
                         </button>
-                        <h1 className="text-xl font-bold flex-1">📋 Orders ({orders.length})</h1>
+                        <h1 className="text-xl font-bold flex-1 truncate">📋 Orders ({orders.length})</h1>
                     </div>
 
-                    <div className="p-4 max-w-2xl mx-auto pb-20">
+                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-20">
                         <div className="bg-white rounded-2xl p-3 shadow mb-4 flex items-center gap-2">
                             <span>🔍</span>
                             <input
@@ -893,15 +918,15 @@
             };
 
             return (
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
                     <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
                         <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
                             ← BACK
                         </button>
-                        <h1 className="text-xl font-bold flex-1">🖼️ Samples ({samples.length})</h1>
+                        <h1 className="text-xl font-bold flex-1 truncate">🖼️ Samples ({samples.length})</h1>
                     </div>
 
-                    <div className="p-4 max-w-2xl mx-auto pb-20">
+                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-20">
                         {showForm ? (
                             <div className="bg-white rounded-2xl p-5 shadow mb-4">
                                 <h2 className="text-lg font-bold text-gray-800 mb-4">➕ Add Sample</h2>
