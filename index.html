@@ -233,36 +233,43 @@
                 
                 const itemStartY = yPosition;
                 
-                // ===== SAMPLE IMAGE (45x45mm square) =====
+                // ===== SAMPLE IMAGE (SQUARE 40x40mm) =====
                 if (sample.photo || sample.photoPreview) {
                     try {
                         const photoData = sample.photo || sample.photoPreview;
-                        const imgSize = 45;
-                        doc.addImage(photoData, 'JPEG', 15, yPosition, imgSize, imgSize);
+                        // SQUARE: Width = Height (40x40mm)
+                        const squareSize = 40;
+                        doc.addImage(photoData, 'JPEG', 15, yPosition, squareSize, squareSize);
                     } catch (e) {
+                        // Placeholder if image fails
                         doc.setFillColor(220, 220, 220);
-                        doc.rect(15, yPosition, 45, 45);
+                        doc.rect(15, yPosition, 40, 40);
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 150, 150);
+                        doc.text('Image', 20, yPosition + 18);
                     }
                 }
                 
                 // ===== SAMPLE INFO (Right side of image) =====
-                const textX = 65;
+                const textX = 60; // Start after image
                 
                 // Item Number + Name (BOLD & BIG)
                 doc.setFont(undefined, 'bold');
                 doc.setFontSize(12);
                 doc.setTextColor(0, 0, 0);
-                doc.text(`${index + 1}. ${sample.name}`, textX, yPosition + 10);
+                doc.text(`${index + 1}. ${sample.name}`, textX, yPosition + 8);
                 
-                // Quantity Type and Value (BOLD, second line)
+                // Quantity Type and Value (BOLD, clear format)
                 const quantityType = sample.quantityType || 'Set';
                 doc.setFontSize(11);
-                doc.text(`${quantityType}: ${sample.quantity}`, textX, yPosition + 20);
+                doc.setFont(undefined, 'bold');
+                // Show both type and quantity clearly
+                doc.text(`Qty: ${sample.quantity} ${quantityType}`, textX, yPosition + 18);
                 
-                yPosition = itemStartY + 50;
+                yPosition = itemStartY + 45; // 40mm image + 5mm gap
                 
                 // Add separator line
-                doc.setDrawColor(220, 220, 220);
+                doc.setDrawColor(200, 200, 200);
                 doc.line(15, yPosition, pageWidth - 15, yPosition);
                 yPosition += 5;
             });
@@ -533,7 +540,7 @@
                                             )}
                                             <div className="flex-1">
                                                 <p className="font-semibold text-gray-800">{idx + 1}. {sample.name}</p>
-                                                <p className="text-sm text-gray-600">Qty: <span className="font-bold">{sample.quantity} {sample.quantityType || 'Set'}</span></p>
+                                                <p className="text-sm text-gray-600">📦 Qty: <span className="font-bold text-red-600">{sample.quantity} {sample.quantityType || 'Set'}</span></p>
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteSample(sample.id)}
@@ -641,9 +648,9 @@
                                             <select
                                                 value={newSample.quantityType || 'Set'}
                                                 onChange={(e) => setNewSample({ ...newSample, quantityType: e.target.value })}
-                                                className="px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none font-semibold"
+                                                className="px-3 py-2 border-2 border-red-600 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-red-600"
                                             >
-                                                <option value="Set">Set</option>
+                                                <option value="Set">🔴 Set (Default)</option>
                                                 <option value="Pieces">Pieces</option>
                                             </select>
                                         </div>
