@@ -2,91 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="SKT Orders - Shri Krishna Textiles Order Management System">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#DC143C">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SKT Orders">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="./icon-192.png">
+    <title>SKT Orders - Shri Krishna Textiles</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./icon-192.png">
     <link rel="apple-touch-icon" href="./icon-192.png">
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="./manifest.json">
-    
-    <title>SKT Orders - Shri Krishna Textiles</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- jsPDF for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- HTML2Canvas for image rendering -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <!-- React -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html2canvas@latest/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        * {
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background-color: #f9fafb;
-            margin: 0;
-            padding: 0;
-        }
-        
-        input, textarea, select {
-            -webkit-user-select: text;
-            -webkit-touch-callout: default;
-        }
-        
-        .fade-enter {
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* iOS specific fixes */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: max(12px, env(safe-area-inset-left));
-                padding-right: max(12px, env(safe-area-inset-right));
-                padding-top: max(12px, env(safe-area-inset-top));
-                padding-bottom: max(12px, env(safe-area-inset-bottom));
-            }
-        }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        .grid { display: grid; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        * { box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useRef, useEffect } = React;
 
         // Initialize IndexedDB
         const initDB = () => {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open('SKTOrdersDB', 1);
-                
                 request.onerror = () => reject(request.error);
                 request.onsuccess = () => resolve(request.result);
-                
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
                     if (!db.objectStoreNames.contains('orders')) {
@@ -99,85 +47,7 @@
             });
         };
 
-        // Save order
-        const saveOrderToDB = async (order) => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['orders'], 'readwrite');
-                const store = transaction.objectStore('orders');
-                const request = order.id ? store.put(order) : store.add(order);
-                
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Get all orders
-        const getOrdersFromDB = async () => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['orders'], 'readonly');
-                const store = transaction.objectStore('orders');
-                const request = store.getAll();
-                
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Delete order
-        const deleteOrderFromDB = async (id) => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['orders'], 'readwrite');
-                const store = transaction.objectStore('orders');
-                const request = store.delete(id);
-                
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Save sample
-        const saveSampleToDB = async (sample) => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['samples'], 'readwrite');
-                const store = transaction.objectStore('samples');
-                const request = store.add(sample);
-                
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Get all samples
-        const getSamplesFromDB = async () => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['samples'], 'readonly');
-                const store = transaction.objectStore('samples');
-                const request = store.getAll();
-                
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Delete sample
-        const deleteSampleFromDB = async (id) => {
-            const db = await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction(['samples'], 'readwrite');
-                const store = transaction.objectStore('samples');
-                const request = store.delete(id);
-                
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
-        };
-
-        // Generate PDF
+        // Generate PDF with optimized layout (10-12 photos per page)
         const generatePDF = async (order) => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
@@ -186,243 +56,104 @@
             const pageHeight = doc.internal.pageSize.getHeight();
             let yPosition = 15;
             
-            // ========== HEADER ==========
+            // Header
             doc.setFillColor(220, 20, 20);
-            doc.rect(0, 0, pageWidth, 30, 'F');
+            doc.rect(0, 0, pageWidth, 28, 'F');
             
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(20);
+            doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
             doc.text('SHRI KRISHNA TEXTILES', 15, 12);
             
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'normal');
-            doc.text('SKT Orders - Sample Collection', 15, 22);
-            
-            // ========== ORDER DETAILS ==========
-            yPosition = 40;
-            doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
-            
-            doc.setFont(undefined, 'bold');
-            doc.text('Party Name:', 15, yPosition);
             doc.setFont(undefined, 'normal');
-            doc.text(order.partyName, 50, yPosition);
+            doc.text(`Party: ${order.partyName} | Order #: ${order.orderNumber} | Date: ${order.date}`, 15, 21);
             
-            yPosition += 7;
-            doc.setFont(undefined, 'bold');
-            doc.text('Order #:', 15, yPosition);
-            doc.setFont(undefined, 'normal');
-            doc.text(order.orderNumber.toString(), 50, yPosition);
+            yPosition = 35;
             
-            yPosition += 7;
-            doc.setFont(undefined, 'bold');
-            doc.text('Date:', 15, yPosition);
-            doc.setFont(undefined, 'normal');
-            doc.text(order.date, 50, yPosition);
-            
-            // ========== SAMPLES SECTION ==========
-            yPosition += 15;
+            // Samples in grid format (3 columns, optimized for 10-12 per page)
+            const cols = 3;
+            const colWidth = (pageWidth - 30) / cols;
+            const imgSize = 30; // 30x30mm square
+            let sampleCount = 0;
             
             order.samples.forEach((sample, index) => {
-                // Check if we need new page
-                if (yPosition > pageHeight - 65) {
+                const row = Math.floor(sampleCount / cols);
+                const col = sampleCount % cols;
+                
+                // Check if need new page
+                if (row > 3) {
                     doc.addPage();
                     yPosition = 15;
+                    row = 0;
+                    sampleCount = 0;
                 }
                 
-                const itemStartY = yPosition;
+                const xPos = 15 + col * colWidth;
+                const yPos = yPosition + row * (imgSize + 18);
                 
-                // ===== SAMPLE IMAGE (SQUARE 40x40mm) =====
+                // Image (30x30mm square)
                 if (sample.photo || sample.photoPreview) {
                     try {
                         const photoData = sample.photo || sample.photoPreview;
-                        // SQUARE: Width = Height (40x40mm)
-                        const squareSize = 40;
-                        doc.addImage(photoData, 'JPEG', 15, yPosition, squareSize, squareSize);
+                        doc.addImage(photoData, 'JPEG', xPos, yPos, imgSize, imgSize);
                     } catch (e) {
-                        // Placeholder if image fails
                         doc.setFillColor(220, 220, 220);
-                        doc.rect(15, yPosition, 40, 40);
-                        doc.setFontSize(8);
-                        doc.setTextColor(150, 150, 150);
-                        doc.text('Image', 20, yPosition + 18);
+                        doc.rect(xPos, yPos, imgSize, imgSize);
                     }
                 }
                 
-                // ===== SAMPLE INFO (Right side of image) =====
-                const textX = 60; // Start after image
-                
-                // Item Number + Name (BOLD & BIG)
+                // Quantity below image
                 doc.setFont(undefined, 'bold');
-                doc.setFontSize(12);
+                doc.setFontSize(9);
                 doc.setTextColor(0, 0, 0);
-                doc.text(`${index + 1}. ${sample.name}`, textX, yPosition + 8);
+                doc.text(`Qty: ${sample.quantity}`, xPos + 2, yPos + imgSize + 8);
                 
-                // Quantity Type and Value (BOLD, clear format)
-                const quantityType = sample.quantityType || 'Set';
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'bold');
-                // Show both type and quantity clearly
-                doc.text(`Qty: ${sample.quantity} ${quantityType}`, textX, yPosition + 18);
-                
-                yPosition = itemStartY + 45; // 40mm image + 5mm gap
-                
-                // Add separator line
-                doc.setDrawColor(200, 200, 200);
-                doc.line(15, yPosition, pageWidth - 15, yPosition);
-                yPosition += 5;
+                sampleCount++;
             });
             
-            // ========== FOOTER ==========
-            yPosition = pageHeight - 12;
+            // Footer
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
             doc.setFont(undefined, 'normal');
-            doc.text('Generated by SKT Orders App | ' + new Date().toLocaleDateString(), 15, yPosition);
+            doc.text(`Generated by SKT Orders App`, 15, pageHeight - 8);
             
             return doc;
         };
 
-        // Backup & Restore
-        const BackupRestore = () => {
-            const fileInputRef = useRef(null);
-            
-            const handleBackup = async () => {
-                const orders = await getOrdersFromDB();
-                const samples = await getSamplesFromDB();
-                const data = { orders, samples, timestamp: new Date().toISOString() };
-                
-                const element = document.createElement('a');
-                element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(data, null, 2)));
-                element.setAttribute('download', `SKT_Backup_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-            };
-            
-            const handleRestore = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    try {
-                        const data = JSON.parse(event.target.result);
-                        const db = await initDB();
-                        const transaction = db.transaction(['orders', 'samples'], 'readwrite');
-                        
-                        if (data.orders) {
-                            const ordersStore = transaction.objectStore('orders');
-                            data.orders.forEach(order => ordersStore.put(order));
-                        }
-                        
-                        if (data.samples) {
-                            const samplesStore = transaction.objectStore('samples');
-                            data.samples.forEach(sample => samplesStore.put(sample));
-                        }
-                        
-                        alert('✅ Data restored successfully!');
-                    } catch (error) {
-                        alert('❌ Error: ' + error.message);
-                    }
-                };
-                reader.readAsText(file);
-            };
-            
-            return (
-                <div className="bg-white rounded-lg p-4 shadow border border-gray-200">
-                    <p className="text-xs text-gray-600 mb-3 font-semibold">📊 BACKUP & RESTORE</p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={handleBackup}
-                            className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-3 rounded font-semibold text-sm transition"
-                        >
-                            📥 BACKUP
-                        </button>
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-3 rounded font-semibold text-sm transition"
-                        >
-                            📤 RESTORE
-                        </button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept=".json"
-                            onChange={handleRestore}
-                            style={{ display: 'none' }}
-                        />
-                    </div>
-                </div>
-            );
-        };
-
-        // Home Screen
-        const HomeScreen = ({ onNavigate }) => {
-            return (
-                <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col items-center justify-center p-4">
-                    <div className="mb-8">
-                        <div className="w-40 h-40 bg-white rounded-3xl shadow-lg flex items-center justify-center overflow-hidden">
-                            <img src="./icon-192.png" alt="SKT Orders" className="w-full h-full object-cover" />
-                        </div>
-                    </div>
-
-                    <h1 className="text-2xl font-bold text-red-600 mb-2 text-center">Shri Krishna Textiles</h1>
-                    <p className="text-gray-500 mb-12 text-center font-semibold">Order Management System</p>
-
-                    <div className="w-full max-w-sm space-y-4">
-                        <button
-                            onClick={() => onNavigate('newOrder')}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg transition transform hover:scale-105 text-lg"
-                        >
-                            ➕ NEW ORDER
-                        </button>
-
-                        <button
-                            onClick={() => onNavigate('orders')}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg transition transform hover:scale-105 text-lg"
-                        >
-                            📋 ORDERS
-                        </button>
-
-                        <button
-                            onClick={() => onNavigate('samples')}
-                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 px-6 rounded-2xl shadow-lg transition transform hover:scale-105 text-lg"
-                        >
-                            🖼️ SAMPLES
-                        </button>
-                    </div>
-
-                    <div className="mt-12 w-full max-w-sm">
-                        <BackupRestore />
-                    </div>
-
-                    <div className="mt-8 text-center text-xs text-gray-500">
-                        <p>✅ Works Offline • 💾 Auto-Save • 📱 PWA Ready</p>
-                    </div>
-                </div>
-            );
-        };
-
-        // New Order Screen
-        const NewOrderScreen = ({ onNavigate, onSave }) => {
-            const [partyName, setPartyName] = useState('');
-            const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+        function App() {
+            const [screen, setScreen] = useState('home');
+            const [orders, setOrders] = useState([]);
             const [samples, setSamples] = useState([]);
-            const [showSampleForm, setShowSampleForm] = useState(false);
-            const [savedSamples, setSavedSamples] = useState([]);
+            const [partyName, setPartyName] = useState('');
+            const [currentOrderSamples, setCurrentOrderSamples] = useState([]);
+            const [selectedOrder, setSelectedOrder] = useState(null);
+            const [editingOrder, setEditingOrder] = useState(null);
+            const [photoPreview, setPhotoPreview] = useState(null);
+            const [photoData, setPhotoData] = useState(null);
+            const [quantity, setQuantity] = useState('');
             const cameraRef = useRef(null);
             const fileInputRef = useRef(null);
-            const [newSample, setNewSample] = useState({ name: '', quantity: '', quantityType: 'Set', photo: null, photoPreview: null });
 
+            // Load data
             useEffect(() => {
-                loadSamples();
+                loadData();
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('./service-worker.js');
+                }
             }, []);
 
-            const loadSamples = async () => {
-                const dbSamples = await getSamplesFromDB();
-                setSavedSamples(dbSamples);
+            const loadData = async () => {
+                try {
+                    const db = await initDB();
+                    const ordersStore = db.transaction('orders', 'readonly').objectStore('orders');
+                    const samplesStore = db.transaction('samples', 'readonly').objectStore('samples');
+                    
+                    ordersStore.getAll().onsuccess = (e) => setOrders(e.target.result || []);
+                    samplesStore.getAll().onsuccess = (e) => setSamples(e.target.result || []);
+                } catch (err) {
+                    console.log('DB Load Error:', err);
+                }
             };
 
             const handlePhotoCapture = (e) => {
@@ -430,230 +161,267 @@
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = (event) => {
-                        setNewSample({
-                            ...newSample,
-                            photo: event.target.result,
-                            photoPreview: event.target.result
-                        });
+                        setPhotoData(event.target.result);
+                        setPhotoPreview(event.target.result);
                     };
                     reader.readAsDataURL(file);
                 }
             };
 
-            const handleAddSample = () => {
-                if (!newSample.name || !newSample.quantity) {
-                    alert('⚠️ Please enter sample name and quantity');
+            const handleAddSample = async () => {
+                if (!photoData || !quantity) {
+                    alert('Please capture photo and enter quantity');
                     return;
                 }
-                
-                setSamples([...samples, { ...newSample, id: Date.now() }]);
-                setNewSample({ name: '', quantity: '', quantityType: 'Set', photo: null, photoPreview: null });
-                setShowSampleForm(false);
-            };
 
-            const handleDeleteSample = (id) => {
-                setSamples(samples.filter(s => s.id !== id));
+                const newSample = {
+                    id: Date.now(),
+                    photo: photoData,
+                    quantity: quantity
+                };
+
+                setCurrentOrderSamples([...currentOrderSamples, newSample]);
+                setPhotoData(null);
+                setPhotoPreview(null);
+                setQuantity('');
             };
 
             const handleSaveOrder = async () => {
-                if (!partyName.trim()) {
-                    alert('⚠️ Please enter party name');
-                    return;
-                }
-                
-                if (samples.length === 0) {
-                    alert('⚠️ Please add at least one sample');
+                if (!partyName || currentOrderSamples.length === 0) {
+                    alert('Please enter party name and add samples');
                     return;
                 }
 
-                const order = {
-                    partyName: partyName.trim(),
-                    date,
-                    samples,
-                    timestamp: new Date().toISOString(),
-                    orderNumber: Math.floor(100000 + Math.random() * 900000)
-                };
+                try {
+                    const db = await initDB();
+                    const order = {
+                        partyName,
+                        orderNumber: Math.floor(100000 + Math.random() * 900000),
+                        date: new Date().toLocaleDateString(),
+                        samples: currentOrderSamples,
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                    };
 
-                await saveOrderToDB(order);
-                alert('✅ Order saved! Order #' + order.orderNumber);
-                
-                setTimeout(async () => {
+                    const tx = db.transaction('orders', 'readwrite');
+                    tx.objectStore('orders').add(order);
+
+                    // Generate PDF
                     const doc = await generatePDF(order);
-                    doc.save(`SKT_Order_${order.orderNumber}.pdf`);
-                    onSave(order);
-                }, 500);
+                    const fileName = `${order.partyName}_${order.date.replace(/\//g, '-')}_Order${order.orderNumber}.pdf`;
+                    doc.save(fileName);
+
+                    // Reset
+                    setPartyName('');
+                    setCurrentOrderSamples([]);
+                    setScreen('orders');
+                    loadData();
+                } catch (err) {
+                    alert('Error saving order');
+                }
             };
 
-            const handleSelectSavedSample = (sample) => {
-                setNewSample({
-                    ...newSample,
-                    name: sample.name,
-                    photo: sample.photo,
-                    photoPreview: sample.photo
-                });
+            const handleEditOrder = async (updatedSamples) => {
+                if (!editingOrder) return;
+
+                try {
+                    const db = await initDB();
+                    const updatedOrder = {
+                        ...editingOrder,
+                        samples: updatedSamples
+                    };
+
+                    const tx = db.transaction('orders', 'readwrite');
+                    tx.objectStore('orders').put(updatedOrder);
+
+                    setEditingOrder(null);
+                    loadData();
+                } catch (err) {
+                    alert('Error updating order');
+                }
             };
 
-            return (
-                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-                    <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                        <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
-                            ← BACK
-                        </button>
-                        <h1 className="text-xl font-bold flex-1 truncate">New Order</h1>
-                    </div>
+            const handleCompleteOrder = async (orderId) => {
+                try {
+                    const db = await initDB();
+                    const order = orders.find(o => o.id === orderId);
+                    if (!order) return;
 
-                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-24">
-                        <div className="bg-white rounded-2xl p-5 shadow mb-4">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">📋 Order Details</h2>
+                    const updatedOrder = { ...order, status: 'complete' };
+                    const tx = db.transaction('orders', 'readwrite');
+                    tx.objectStore('orders').put(updatedOrder);
+
+                    loadData();
+                } catch (err) {
+                    alert('Error updating order');
+                }
+            };
+
+            const handleDeleteOrder = async (id) => {
+                if (!window.confirm('Delete this order?')) return;
+                try {
+                    const db = await initDB();
+                    const tx = db.transaction('orders', 'readwrite');
+                    tx.objectStore('orders').delete(id);
+                    loadData();
+                } catch (err) {
+                    alert('Error deleting order');
+                }
+            };
+
+            const handleBackup = () => {
+                const data = {
+                    orders: orders,
+                    samples: samples,
+                    backupDate: new Date().toISOString()
+                };
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `SKTOrders_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const handleRestore = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        const db = await initDB();
+
+                        // Clear and restore
+                        let ordersTx = db.transaction('orders', 'readwrite');
+                        ordersTx.objectStore('orders').clear();
+                        data.orders.forEach(order => {
+                            ordersTx.objectStore('orders').add(order);
+                        });
+
+                        let samplesTx = db.transaction('samples', 'readwrite');
+                        samplesTx.objectStore('samples').clear();
+                        data.samples.forEach(sample => {
+                            samplesTx.objectStore('samples').add(sample);
+                        });
+
+                        alert('Data restored successfully!');
+                        loadData();
+                    } catch (err) {
+                        alert('Error restoring backup');
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            // HOME SCREEN
+            if (screen === 'home') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col items-center justify-center p-4">
+                        <img src="./icon-192.png" alt="SKT" className="w-24 h-24 mb-6 rounded-full shadow-lg" />
+                        <h1 className="text-3xl font-bold text-red-600 mb-8">SKT Orders</h1>
+                        
+                        <div className="w-full max-w-sm space-y-3">
+                            <button
+                                onClick={() => { setPartyName(''); setCurrentOrderSamples([]); setScreen('neworder'); }}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 px-4 rounded-xl text-lg transition shadow-lg"
+                            >
+                                ➕ NEW ORDER
+                            </button>
                             
+                            <button
+                                onClick={() => setScreen('orders')}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-4 rounded-xl text-lg transition shadow-lg"
+                            >
+                                📋 ORDERS ({orders.length})
+                            </button>
+
+                            <button
+                                onClick={handleBackup}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition"
+                            >
+                                💾 BACKUP
+                            </button>
+
+                            <label className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl text-center cursor-pointer transition">
+                                📥 RESTORE
+                                <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+                );
+            }
+
+            // NEW ORDER SCREEN
+            if (screen === 'neworder') {
+                return (
+                    <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-24">
+                        <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
+                            <button onClick={() => setScreen('home')} className="hover:bg-red-700 p-2 rounded-lg">
+                                ← BACK
+                            </button>
+                            <h1 className="text-xl font-bold flex-1 truncate">New Order</h1>
+                        </div>
+
+                        <div className="w-full px-3 max-w-2xl mx-auto mt-4">
                             <div className="mb-4">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Party Name *</label>
                                 <input
                                     type="text"
                                     value={partyName}
                                     onChange={(e) => setPartyName(e.target.value)}
-                                    placeholder="Enter party/customer name"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none text-lg"
+                                    placeholder="Enter party name"
+                                    className="w-full px-3 py-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none text-lg"
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date *</label>
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
                                 <input
-                                    type="date"
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none text-lg"
+                                    type="text"
+                                    value={new Date().toLocaleDateString()}
+                                    disabled
+                                    className="w-full px-3 py-3 border-2 border-gray-300 rounded-lg bg-gray-100 text-gray-600"
                                 />
                             </div>
-                        </div>
 
-                        <div className="bg-white rounded-2xl p-5 shadow mb-4">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">🧵 Samples ({samples.length})</h2>
-
-                            {samples.length > 0 && (
-                                <div className="space-y-3 mb-4">
-                                    {samples.map((sample, idx) => (
-                                        <div key={sample.id} className="bg-gray-50 p-4 rounded-lg border-l-4 border-red-600 flex gap-3">
-                                            {sample.photoPreview && (
-                                                <img src={sample.photoPreview} alt="sample" className="w-20 h-20 object-cover rounded" />
-                                            )}
-                                            <div className="flex-1">
-                                                <p className="font-semibold text-gray-800">{idx + 1}. {sample.name}</p>
-                                                <p className="text-sm text-gray-600">📦 Qty: <span className="font-bold text-red-600">{sample.quantity} {sample.quantityType || 'Set'}</span></p>
-                                            </div>
-                                            <button
-                                                onClick={() => handleDeleteSample(sample.id)}
-                                                className="text-red-600 hover:bg-red-50 p-2 rounded"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    ))}
+                            {/* Photo Section */}
+                            {!photoPreview && (
+                                <div className="mb-4">
+                                    <button
+                                        onClick={() => cameraRef.current?.click()}
+                                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 px-4 rounded-lg text-2xl transition"
+                                    >
+                                        📷 TAKE PHOTO
+                                    </button>
+                                    <input
+                                        ref={cameraRef}
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={handlePhotoCapture}
+                                        className="hidden"
+                                    />
                                 </div>
                             )}
 
-                            {showSampleForm ? (
-                                <div className="bg-gray-50 p-4 rounded-lg mb-3 border-2 border-red-300">
-                                    <h3 className="font-bold text-gray-800 mb-3">➕ Add Sample</h3>
-
-                                    <div className="mb-4">
-                                        {newSample.photoPreview ? (
-                                            <div className="mb-3">
-                                                <img src={newSample.photoPreview} alt="preview" className="w-full h-40 object-cover rounded-lg" />
-                                                <button
-                                                    onClick={() => setNewSample({ ...newSample, photo: null, photoPreview: null })}
-                                                    className="mt-2 text-red-600 text-sm font-semibold"
-                                                >
-                                                    ✕ Remove Photo
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="mb-3 space-y-2">
-                                                <button
-                                                    onClick={() => cameraRef.current?.click()}
-                                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-4 rounded-lg text-lg transition"
-                                                >
-                                                    📷 CAMERA
-                                                </button>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => cameraRef.current?.click()}
-                                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
-                                                    >
-                                                        📷 Camera
-                                                    </button>
-                                                    <button
-                                                        onClick={() => fileInputRef.current?.click()}
-                                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg"
-                                                    >
-                                                        📁 Gallery
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <input
-                                            ref={cameraRef}
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            onChange={handlePhotoCapture}
-                                        />
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handlePhotoCapture}
-                                        />
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Sample Name *</label>
-                                        <input
-                                            type="text"
-                                            value={newSample.name}
-                                            onChange={(e) => setNewSample({ ...newSample, name: e.target.value })}
-                                            placeholder="e.g., Peela Chundi"
-                                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none"
-                                        />
-                                    </div>
-
-                                    {savedSamples.length > 0 && (
-                                        <div className="mb-4">
-                                            <p className="text-xs font-semibold text-gray-600 mb-2">⭐ QUICK SELECT</p>
-                                            <div className="flex gap-2 flex-wrap">
-                                                {savedSamples.map(sample => (
-                                                    <button
-                                                        key={sample.id}
-                                                        onClick={() => handleSelectSavedSample(sample)}
-                                                        className="bg-white border-2 border-gray-300 px-3 py-1 rounded text-xs font-semibold text-gray-700 hover:border-red-600 transition"
-                                                    >
-                                                        {sample.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="mb-4">
+                            {/* Photo Preview + Quantity */}
+                            {photoPreview && (
+                                <div className="mb-4 bg-white p-4 rounded-lg shadow">
+                                    <img src={photoPreview} alt="Preview" className="w-40 h-40 object-cover rounded-lg mb-3" />
+                                    
+                                    <div className="mb-3">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="number"
-                                                value={newSample.quantity}
-                                                onChange={(e) => setNewSample({ ...newSample, quantity: e.target.value })}
-                                                placeholder="e.g., 500"
-                                                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none"
-                                            />
-                                            <select
-                                                value={newSample.quantityType || 'Set'}
-                                                onChange={(e) => setNewSample({ ...newSample, quantityType: e.target.value })}
-                                                className="px-3 py-2 border-2 border-red-600 rounded-lg focus:border-red-600 focus:outline-none font-semibold text-red-600"
-                                            >
-                                                <option value="Set">🔴 Set (Default)</option>
-                                                <option value="Pieces">Pieces</option>
-                                            </select>
-                                        </div>
+                                        <input
+                                            type="number"
+                                            value={quantity}
+                                            onChange={(e) => setQuantity(e.target.value)}
+                                            placeholder="Enter quantity"
+                                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none text-lg"
+                                        />
                                     </div>
 
                                     <div className="flex gap-2">
@@ -661,430 +429,179 @@
                                             onClick={handleAddSample}
                                             className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg"
                                         >
-                                            ✅ ADD
+                                            ✓ ADD
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                setShowSampleForm(false);
-                                                setNewSample({ name: '', quantity: '', photo: null, photoPreview: null });
-                                            }}
+                                            onClick={() => { setPhotoData(null); setPhotoPreview(null); setQuantity(''); }}
                                             className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg"
                                         >
-                                            ✕ CANCEL
+                                            ✕ RETAKE
                                         </button>
                                     </div>
                                 </div>
-                            ) : (
-                                <button
-                                    onClick={() => setShowSampleForm(true)}
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-4 rounded-lg text-lg transition"
-                                >
-                                    ➕ ADD SAMPLE
-                                </button>
                             )}
-                        </div>
 
-                        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t-2 border-red-600">
-                            <div className="max-w-2xl mx-auto flex gap-3">
-                                <button
-                                    onClick={() => onNavigate('home')}
-                                    className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-4 rounded-lg transition"
-                                >
-                                    ← BACK
-                                </button>
-                                <button
-                                    onClick={handleSaveOrder}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition"
-                                >
-                                    💾 SAVE & PDF
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Orders List Screen
-        const OrdersScreen = ({ onNavigate }) => {
-            const [orders, setOrders] = useState([]);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [selectedOrder, setSelectedOrder] = useState(null);
-
-            useEffect(() => {
-                loadOrders();
-            }, []);
-
-            const loadOrders = async () => {
-                const dbOrders = await getOrdersFromDB();
-                setOrders(dbOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-            };
-
-            const handleDeleteOrder = async (id) => {
-                if (window.confirm('🗑️ Delete this order?')) {
-                    await deleteOrderFromDB(id);
-                    loadOrders();
-                    setSelectedOrder(null);
-                }
-            };
-
-            const handleGeneratePDF = async (order) => {
-                const doc = await generatePDF(order);
-                doc.save(`SKT_Order_${order.orderNumber}.pdf`);
-                alert('✅ PDF downloaded!');
-            };
-
-            const filteredOrders = orders.filter(
-                order =>
-                    order.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    order.orderNumber.toString().includes(searchTerm)
-            );
-
-            if (selectedOrder) {
-                return (
-                    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-                        <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                            <button
-                                onClick={() => setSelectedOrder(null)}
-                                className="hover:bg-red-700 p-2 rounded-lg"
-                            >
-                                ← BACK
-                            </button>
-                            <h1 className="text-xl font-bold flex-1 truncate">Order #{selectedOrder.orderNumber}</h1>
-                        </div>
-
-                        <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-24">
-                            <div className="bg-white rounded-2xl p-5 shadow mb-4">
-                                <div className="mb-4">
-                                    <p className="text-sm text-gray-600 font-semibold">👥 PARTY NAME</p>
-                                    <p className="text-2xl font-bold text-gray-800">{selectedOrder.partyName}</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-gray-600 font-semibold">📌 ORDER #</p>
-                                        <p className="text-lg font-bold text-red-600">{selectedOrder.orderNumber}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-600 font-semibold">📅 DATE</p>
-                                        <p className="text-lg font-bold text-gray-800">{selectedOrder.date}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-2xl p-5 shadow mb-4">
-                                <h2 className="text-lg font-bold text-gray-800 mb-4">🧵 Samples ({selectedOrder.samples.length})</h2>
-                                <div className="space-y-4">
-                                    {selectedOrder.samples.map((sample, idx) => (
-                                        <div key={idx} className="bg-gray-50 p-4 rounded-lg border-l-4 border-red-600">
-                                            {(sample.photoPreview || sample.photo) && (
-                                                <img src={sample.photoPreview || sample.photo} alt="sample" className="w-full h-40 object-cover rounded-lg mb-3" />
-                                            )}
-                                            <p className="font-semibold text-gray-800">{idx + 1}. {sample.name}</p>
-                                            <p className="text-sm text-gray-600">Qty: <span className="font-bold">{sample.quantity} Sets</span></p>
+                            {/* Added Samples */}
+                            <div className="mb-4">
+                                <h3 className="font-bold text-gray-800 mb-2">📦 Samples Added ({currentOrderSamples.length})</h3>
+                                <div className="space-y-2">
+                                    {currentOrderSamples.map((sample, idx) => (
+                                        <div key={sample.id} className="bg-white p-3 rounded-lg flex justify-between items-center shadow">
+                                            <span className="font-semibold">Qty: <span className="text-red-600">{sample.quantity}</span></span>
+                                            <button
+                                                onClick={() => setCurrentOrderSamples(currentOrderSamples.filter(s => s.id !== sample.id))}
+                                                className="text-red-600 hover:bg-red-50 px-3 py-1 rounded"
+                                            >
+                                                🗑️ DELETE
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t-2 border-red-600">
-                                <div className="max-w-2xl mx-auto flex gap-3">
-                                    <button
-                                        onClick={() => setSelectedOrder(null)}
-                                        className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-4 rounded-lg transition"
-                                    >
-                                        ← BACK
-                                    </button>
-                                    <button
-                                        onClick={() => handleGeneratePDF(selectedOrder)}
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg transition"
-                                    >
-                                        📄 PDF
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteOrder(selectedOrder.id)}
-                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg transition"
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
+                        {/* Save Button */}
+                        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t-2 border-red-600">
+                            <button
+                                onClick={handleSaveOrder}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition"
+                            >
+                                💾 SAVE & PDF
+                            </button>
                         </div>
                     </div>
                 );
             }
 
-            return (
-                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-                    <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                        <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
-                            ← BACK
-                        </button>
-                        <h1 className="text-xl font-bold flex-1 truncate">📋 Orders ({orders.length})</h1>
-                    </div>
-
-                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-20">
-                        <div className="bg-white rounded-2xl p-3 shadow mb-4 flex items-center gap-2">
-                            <span>🔍</span>
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by party or order #"
-                                className="flex-1 outline-none text-lg py-2"
-                            />
-                        </div>
-
-                        {filteredOrders.length === 0 ? (
-                            <div className="text-center py-12">
-                                <p className="text-gray-600 text-lg font-semibold">No orders yet</p>
+            // ORDERS SCREEN
+            if (screen === 'orders') {
+                if (selectedOrder) {
+                    return (
+                        <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-24">
+                            <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
+                                <button
+                                    onClick={() => setSelectedOrder(null)}
+                                    className="hover:bg-red-700 p-2 rounded-lg"
+                                >
+                                    ← BACK
+                                </button>
+                                <h1 className="text-xl font-bold flex-1 truncate">Order #{selectedOrder.orderNumber}</h1>
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {filteredOrders.map((order) => (
-                                    <button
-                                        key={order.id}
-                                        onClick={() => setSelectedOrder(order)}
-                                        className="w-full bg-white p-4 rounded-2xl shadow hover:shadow-lg hover:border-red-600 transition border-2 border-transparent text-left"
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <p className="text-sm text-gray-600 font-semibold">ORDER #{order.orderNumber}</p>
-                                                <p className="text-lg font-bold text-gray-800">{order.partyName}</p>
-                                            </div>
-                                            <span>➜</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm text-gray-600">
-                                            <span>📅 {order.date}</span>
-                                            <span>📦 {order.samples.length}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
 
-        // Samples Screen
-        const SamplesScreen = ({ onNavigate }) => {
-            const [samples, setSamples] = useState([]);
-            const [showForm, setShowForm] = useState(false);
-            const [newSample, setNewSample] = useState({ name: '', photo: null, photoPreview: null });
-            const cameraRef = useRef(null);
-            const fileInputRef = useRef(null);
-
-            useEffect(() => {
-                loadSamples();
-            }, []);
-
-            const loadSamples = async () => {
-                const dbSamples = await getSamplesFromDB();
-                setSamples(dbSamples);
-            };
-
-            const handlePhotoCapture = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        setNewSample({
-                            ...newSample,
-                            photo: event.target.result,
-                            photoPreview: event.target.result
-                        });
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const handleAddSample = async () => {
-                if (!newSample.name.trim()) {
-                    alert('⚠️ Enter sample name');
-                    return;
-                }
-
-                if (!newSample.photo) {
-                    alert('⚠️ Add a photo');
-                    return;
-                }
-
-                await saveSampleToDB(newSample);
-                alert('✅ Sample saved!');
-                setNewSample({ name: '', photo: null, photoPreview: null });
-                setShowForm(false);
-                loadSamples();
-            };
-
-            const handleDeleteSample = async (id) => {
-                if (window.confirm('🗑️ Delete?')) {
-                    await deleteSampleFromDB(id);
-                    loadSamples();
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-                    <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                        <button onClick={() => onNavigate('home')} className="hover:bg-red-700 p-2 rounded-lg">
-                            ← BACK
-                        </button>
-                        <h1 className="text-xl font-bold flex-1 truncate">🖼️ Samples ({samples.length})</h1>
-                    </div>
-
-                    <div className="w-full px-3 sm:p-4 max-w-2xl mx-auto pb-20">
-                        {showForm ? (
-                            <div className="bg-white rounded-2xl p-5 shadow mb-4">
-                                <h2 className="text-lg font-bold text-gray-800 mb-4">➕ Add Sample</h2>
-
-                                <div className="mb-4">
-                                    {newSample.photoPreview ? (
-                                        <div>
-                                            <img src={newSample.photoPreview} alt="preview" className="w-full h-40 object-cover rounded-lg mb-2" />
-                                            <button
-                                                onClick={() => setNewSample({ ...newSample, photo: null, photoPreview: null })}
-                                                className="text-red-600 text-sm font-semibold"
-                                            >
-                                                ✕ Remove
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => cameraRef.current?.click()}
-                                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition"
-                                            >
-                                                📷 CAMERA
-                                            </button>
-                                            <button
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition"
-                                            >
-                                                📁 GALLERY
-                                            </button>
-                                        </div>
-                                    )}
-                                    <input
-                                        ref={cameraRef}
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        onChange={handlePhotoCapture}
-                                    />
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handlePhotoCapture}
-                                    />
+                            <div className="w-full px-3 max-w-2xl mx-auto mt-4">
+                                <div className="bg-white p-4 rounded-lg shadow mb-4">
+                                    <p className="mb-2"><strong>Party:</strong> {selectedOrder.partyName}</p>
+                                    <p className="mb-2"><strong>Date:</strong> {selectedOrder.date}</p>
+                                    <p><strong>Status:</strong> <span className={selectedOrder.status === 'complete' ? 'text-green-600' : 'text-blue-600'}>{selectedOrder.status}</span></p>
                                 </div>
 
-                                <div className="mb-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Sample Name *</label>
-                                    <input
-                                        type="text"
-                                        value={newSample.name}
-                                        onChange={(e) => setNewSample({ ...newSample, name: e.target.value })}
-                                        placeholder="e.g., Peela Chundi"
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none"
-                                    />
+                                <h3 className="font-bold text-gray-800 mb-3">📦 Samples ({selectedOrder.samples.length})</h3>
+                                <div className="space-y-3 mb-20">
+                                    {selectedOrder.samples.map((sample, idx) => (
+                                        <div key={sample.id} className="bg-white p-3 rounded-lg shadow">
+                                            <img src={sample.photo} alt="Sample" className="w-full h-40 object-cover rounded-lg mb-2" />
+                                            <p className="font-semibold">📦 Qty: {sample.quantity}</p>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleAddSample}
-                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition"
-                                    >
-                                        ✅ SAVE
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowForm(false);
-                                            setNewSample({ name: '', photo: null, photoPreview: null });
-                                        }}
-                                        className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition"
-                                    >
-                                        ✕ CANCEL
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                {samples.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <p className="text-gray-600 text-lg font-semibold mb-4">No samples yet</p>
+                                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white shadow-lg border-t-2 border-red-600 max-w-2xl mx-auto">
+                                    <div className="flex gap-2">
                                         <button
-                                            onClick={() => setShowForm(true)}
-                                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-2xl text-lg inline-block transition"
+                                            onClick={() => {
+                                                const doc = await generatePDF(selectedOrder);
+                                                const fileName = `${selectedOrder.partyName}_${selectedOrder.date.replace(/\//g, '-')}_Order${selectedOrder.orderNumber}.pdf`;
+                                                doc.save(fileName);
+                                            }}
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg"
                                         >
-                                            ➕ ADD SAMPLE
+                                            📄 PDF
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setEditingOrder(selectedOrder);
+                                                setSelectedOrder(null);
+                                            }}
+                                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg"
+                                        >
+                                            ✏️ EDIT
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleCompleteOrder(selectedOrder.id);
+                                                setSelectedOrder(null);
+                                            }}
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg"
+                                        >
+                                            ✓ DONE
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                handleDeleteOrder(selectedOrder.id);
+                                                setSelectedOrder(null);
+                                            }}
+                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg"
+                                        >
+                                            🗑️ DELETE
                                         </button>
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-2 gap-3 mb-4">
-                                            {samples.map((sample) => (
-                                                <div key={sample.id} className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition">
-                                                    <img src={sample.photoPreview || sample.photo} alt={sample.name} className="w-full h-32 object-cover" />
-                                                    <div className="p-3">
-                                                        <p className="font-semibold text-gray-800 text-sm line-clamp-2 mb-2">{sample.name}</p>
-                                                        <button
-                                                            onClick={() => handleDeleteSample(sample.id)}
-                                                            className="text-red-600 hover:bg-red-50 w-full py-2 rounded text-xs font-semibold transition"
-                                                        >
-                                                            🗑️ DELETE
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <button
-                                            onClick={() => setShowForm(true)}
-                                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg text-lg transition"
-                                        >
-                                            ➕ ADD SAMPLE
-                                        </button>
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-        // Main App
-        function SKTOrdersApp() {
-            const [screen, setScreen] = useState('home');
-
-            useEffect(() => {
-                // Register Service Worker
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('./service-worker.js')
-                        .then(reg => console.log('✅ Service Worker registered'))
-                        .catch(err => console.log('SW registration failed:', err));
+                                </div>
+                            </div>
+                        </div>
+                    );
                 }
 
-                // Install prompt
-                window.addEventListener('beforeinstallprompt', e => {
-                    e.preventDefault();
-                    console.log('✅ PWA ready to install');
-                });
-            }, []);
+                return (
+                    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+                        <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
+                            <button onClick={() => setScreen('home')} className="hover:bg-red-700 p-2 rounded-lg">
+                                ← BACK
+                            </button>
+                            <h1 className="text-xl font-bold flex-1 truncate">📋 Orders ({orders.length})</h1>
+                        </div>
 
-            return (
-                <div className="bg-gray-50 min-h-screen">
-                    {screen === 'home' && <HomeScreen onNavigate={setScreen} />}
-                    {screen === 'newOrder' && <NewOrderScreen onNavigate={setScreen} onSave={() => setScreen('orders')} />}
-                    {screen === 'orders' && <OrdersScreen onNavigate={setScreen} />}
-                    {screen === 'samples' && <SamplesScreen onNavigate={setScreen} />}
-                </div>
-            );
+                        <div className="w-full px-3 max-w-2xl mx-auto py-4 pb-20">
+                            <div className="space-y-3">
+                                {orders.map((order) => (
+                                    <div
+                                        key={order.id}
+                                        onClick={() => setSelectedOrder(order)}
+                                        className={`p-4 rounded-lg shadow cursor-pointer transition ${
+                                            order.status === 'complete' ? 'bg-green-100' : 'bg-white hover:shadow-lg'
+                                        }`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-gray-800">#{order.orderNumber}</p>
+                                                <p className="text-gray-600">{order.partyName}</p>
+                                                <p className="text-sm text-gray-500">{order.date} • {order.samples.length} samples</p>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                                order.status === 'complete' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'
+                                            }`}>
+                                                {order.status === 'complete' ? '✓ Complete' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {orders.length === 0 && (
+                                <p className="text-center text-gray-500 mt-10">No orders yet</p>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
         }
 
-        ReactDOM.render(<SKTOrdersApp />, document.getElementById('root'));
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js').catch(err => console.log('SW Error:', err));
+        }
     </script>
 </body>
 </html>
