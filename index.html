@@ -58,64 +58,87 @@
                 const doc = new jsPDF('p', 'mm', 'a4');
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const pageHeight = doc.internal.pageSize.getHeight();
-                
-                // Header
-                doc.setFillColor(220, 20, 20);
-                doc.rect(0, 0, pageWidth, 30, 'F');
-                
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.text('SKT ORDERS', 15, 12);
-                
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Party: ${order.partyName}`, 15, 21);
-                
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'normal');
-                doc.text(`Date: ${order.date}`, 15, 27);
-                
-                // Samples (3 columns)
-                const cols = 3;
-                const imgSize = 28;
-                const colWidth = (pageWidth - 30) / cols;
-                let yPos = 35;
-                let count = 0;
-                
+                const margin = 10;
+
+                const drawHeader = () => {
+                    // Firm header
+                    doc.setFillColor(220, 20, 20);
+                    doc.rect(0, 0, pageWidth, 26, 'F');
+
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(15);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('SHRI KRISHNA TEXTILES (ORDERS)', pageWidth / 2, 11, { align: 'center' });
+
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    doc.text('Fabric Sample Order Sheet', pageWidth / 2, 18, { align: 'center' });
+
+                    // Party + Date bar
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(0, 26, pageWidth, 12, 'F');
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`Party: ${order.partyName}`, margin, 34);
+                    doc.text(`Date: ${order.date}`, pageWidth - margin, 34, { align: 'right' });
+                };
+
+                drawHeader();
+
+                // Grid: 4 columns x 3 rows = 12 samples per page
+                const cols = 4;
+                const rows = 3;
+                const gridTop = 44;
+                const usableWidth = pageWidth - margin * 2;
+                const colWidth = usableWidth / cols;
+                const imgSize = colWidth - 8;
+                const rowHeight = imgSize + 14;
+
+                let posOnPage = 0;
+
                 for (let i = 0; i < order.samples.length; i++) {
                     const sample = order.samples[i];
-                    const col = count % cols;
-                    
-                    if (col === 0 && count > 0) {
-                        yPos += 38;
-                    }
-                    
-                    if (yPos > pageHeight - 50) {
+
+                    if (posOnPage === cols * rows) {
                         doc.addPage();
-                        yPos = 15;
-                        count = 0;
+                        drawHeader();
+                        posOnPage = 0;
                     }
-                    
-                    const xPos = 15 + (count % cols) * colWidth;
-                    
+
+                    const col = posOnPage % cols;
+                    const row = Math.floor(posOnPage / cols);
+                    const xPos = margin + col * colWidth + 4;
+                    const yPos = gridTop + row * rowHeight;
+
+                    // Box border
+                    doc.setDrawColor(220, 220, 220);
+                    doc.setLineWidth(0.3);
+                    doc.rect(xPos - 2, yPos - 2, imgSize + 4, imgSize + 14);
+
                     if (sample.photo) {
                         try {
                             doc.addImage(sample.photo, 'JPEG', xPos, yPos, imgSize, imgSize);
                         } catch (e) {
-                            // Skip image on error
+                            doc.setFillColor(230, 230, 230);
+                            doc.rect(xPos, yPos, imgSize, imgSize, 'F');
                         }
                     }
-                    
+
                     doc.setFont(undefined, 'bold');
-                    doc.setFontSize(8);
+                    doc.setFontSize(9);
                     doc.setTextColor(0, 0, 0);
-                    doc.text(`Qty:${sample.quantity}`, xPos + 2, yPos + imgSize + 5);
-                    
-                    count++;
+                    doc.text(`Qty: ${sample.quantity}`, xPos + imgSize / 2, yPos + imgSize + 7, { align: 'center' });
+
+                    posOnPage++;
                 }
-                
-                // Download
+
+                // Footer on last page
+                doc.setFontSize(7);
+                doc.setTextColor(150, 150, 150);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Total Samples: ${order.samples.length}  |  Generated by SKT Orders App`, margin, pageHeight - 6);
+
                 const fileName = `${order.partyName}_${order.date.replace(/\//g, '-')}.pdf`;
                 doc.save(fileName);
                 return true;
@@ -134,6 +157,7 @@
             const [photoPreview, setPhotoPreview] = useState(null);
             const [photoData, setPhotoData] = useState(null);
             const [quantity, setQuantity] = useState('');
+            const [editingOrderId, setEditingOrderId] = useState(null);
             const cameraRef = useRef(null);
 
             // Load data on mount
@@ -180,7 +204,8 @@
                 const newSample = {
                     id: Date.now(),
                     photo: photoData,
-                    quantity: quantity
+                    quantity: quantity,
+                    sent: false
                 };
 
                 setCurrentOrderSamples([...currentOrderSamples, newSample]);
@@ -197,53 +222,88 @@
 
                 try {
                     const db = await initDB();
-                    const order = {
-                        id: Date.now(),
-                        partyName,
-                        orderNumber: Math.floor(100000 + Math.random() * 900000),
-                        date: new Date().toLocaleDateString(),
-                        samples: currentOrderSamples,
-                        status: 'pending'
-                    };
 
-                    const tx = db.transaction('orders', 'readwrite');
-                    tx.objectStore('orders').add(order);
+                    if (editingOrderId) {
+                        // UPDATE existing order
+                        const tx = db.transaction('orders', 'readwrite');
+                        const store = tx.objectStore('orders');
+                        store.get(editingOrderId).onsuccess = (e) => {
+                            const existing = e.target.result;
+                            const updatedOrder = {
+                                ...existing,
+                                partyName,
+                                samples: currentOrderSamples
+                            };
+                            store.put(updatedOrder);
+                            setTimeout(() => {
+                                setPartyName('');
+                                setCurrentOrderSamples([]);
+                                setEditingOrderId(null);
+                                setScreen('orders');
+                                loadData();
+                            }, 300);
+                        };
+                    } else {
+                        // CREATE new order
+                        const order = {
+                            id: Date.now(),
+                            partyName,
+                            orderNumber: Math.floor(100000 + Math.random() * 900000),
+                            date: new Date().toLocaleDateString(),
+                            samples: currentOrderSamples,
+                            status: 'pending'
+                        };
 
-                    // Generate PDF immediately
-                    setTimeout(() => {
-                        generatePDFFile(order);
-                    }, 300);
+                        const tx = db.transaction('orders', 'readwrite');
+                        tx.objectStore('orders').add(order);
 
-                    // Reset and navigate
-                    setTimeout(() => {
-                        setPartyName('');
-                        setCurrentOrderSamples([]);
-                        setScreen('orders');
-                        loadData();
-                    }, 500);
+                        setTimeout(() => {
+                            generatePDFFile(order);
+                        }, 300);
+
+                        setTimeout(() => {
+                            setPartyName('');
+                            setCurrentOrderSamples([]);
+                            setScreen('orders');
+                            loadData();
+                        }, 500);
+                    }
                 } catch (err) {
                     console.error('Save error:', err);
                     alert('Error saving order');
                 }
             };
 
-            const handleEditOrder = async (updatedSamples) => {
-                if (!editingOrder) return;
-
+            // Toggle sample "sent" status. Auto-complete + auto-delete order when all sent.
+            const handleToggleSent = async (order, sampleId) => {
                 try {
                     const db = await initDB();
-                    const updatedOrder = {
-                        ...editingOrder,
-                        samples: updatedSamples
-                    };
+                    const updatedSamples = order.samples.map(s =>
+                        s.id === sampleId ? { ...s, sent: !s.sent } : s
+                    );
+                    const allSent = updatedSamples.every(s => s.sent);
+                    const updatedOrder = { ...order, samples: updatedSamples, status: allSent ? 'complete' : 'pending' };
 
                     const tx = db.transaction('orders', 'readwrite');
                     tx.objectStore('orders').put(updatedOrder);
 
-                    setEditingOrder(null);
+                    if (allSent) {
+                        // Show completed, then auto-delete after short delay
+                        setSelectedOrder(updatedOrder);
+                        setTimeout(async () => {
+                            const db2 = await initDB();
+                            const tx2 = db2.transaction('orders', 'readwrite');
+                            tx2.objectStore('orders').delete(order.id);
+                            setSelectedOrder(null);
+                            setScreen('orders');
+                            loadData();
+                        }, 1200);
+                    } else {
+                        setSelectedOrder(updatedOrder);
+                    }
                     loadData();
                 } catch (err) {
-                    alert('Error updating order');
+                    console.error('Toggle error:', err);
                 }
             };
 
@@ -405,10 +465,10 @@
                 return (
                     <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-24">
                         <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                            <button onClick={() => setScreen('home')} className="hover:bg-red-700 p-2 rounded-lg">
+                            <button onClick={() => { setEditingOrderId(null); setPartyName(''); setCurrentOrderSamples([]); setScreen('home'); }} className="hover:bg-red-700 p-2 rounded-lg">
                                 ← BACK
                             </button>
-                            <h1 className="text-xl font-bold flex-1 truncate">New Order</h1>
+                            <h1 className="text-xl font-bold flex-1 truncate">{editingOrderId ? 'Edit Order' : 'New Order'}</h1>
                         </div>
 
                         <div className="w-full px-3 max-w-2xl mx-auto mt-4">
@@ -514,7 +574,7 @@
                                 onClick={handleSaveOrder}
                                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition"
                             >
-                                💾 SAVE & PDF
+                                {editingOrderId ? '💾 UPDATE ORDER' : '💾 SAVE & PDF'}
                             </button>
                         </div>
                     </div>
@@ -543,12 +603,23 @@
                                     <p><strong>Status:</strong> <span className={selectedOrder.status === 'complete' ? 'text-green-600' : 'text-blue-600'}>{selectedOrder.status}</span></p>
                                 </div>
 
-                                <h3 className="font-bold text-gray-800 mb-3">📦 Samples ({selectedOrder.samples.length})</h3>
+                                <h3 className="font-bold text-gray-800 mb-3">📦 Samples ({selectedOrder.samples.length}) — Tick jo bhej diye</h3>
                                 <div className="space-y-3 mb-20">
                                     {selectedOrder.samples.map((sample, idx) => (
-                                        <div key={sample.id} className="bg-white p-3 rounded-lg shadow">
-                                            <img src={sample.photo} alt="Sample" className="w-full h-40 object-cover rounded-lg mb-2" />
-                                            <p className="font-semibold">📦 Qty: {sample.quantity}</p>
+                                        <div key={sample.id} className={`p-3 rounded-lg shadow flex gap-3 items-center ${sample.sent ? 'bg-green-100' : 'bg-white'}`}>
+                                            <img src={sample.photo} alt="Sample" className="w-20 h-20 object-cover rounded-lg" />
+                                            <div className="flex-1">
+                                                <p className="font-semibold">📦 Qty: {sample.quantity}</p>
+                                                {sample.sent && <p className="text-green-600 text-sm font-bold">✓ Sent</p>}
+                                            </div>
+                                            <button
+                                                onClick={() => handleToggleSent(selectedOrder, sample.id)}
+                                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-xl font-bold ${
+                                                    sample.sent ? 'bg-green-600 border-green-600 text-white' : 'bg-white border-gray-300 text-gray-300'
+                                                }`}
+                                            >
+                                                ✓
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -565,8 +636,11 @@
                                         </button>
                                         <button
                                             onClick={() => {
-                                                setEditingOrder(selectedOrder);
+                                                setPartyName(selectedOrder.partyName);
+                                                setCurrentOrderSamples(selectedOrder.samples);
+                                                setEditingOrderId(selectedOrder.id);
                                                 setSelectedOrder(null);
+                                                setScreen('neworder');
                                             }}
                                             className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg"
                                         >
