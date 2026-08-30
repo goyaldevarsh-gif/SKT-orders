@@ -61,8 +61,8 @@
                 const margin = 10;
 
                 const drawHeader = () => {
-                    // Firm header
-                    doc.setFillColor(220, 20, 20);
+                    // Firm header - dark gray for clean B&W printing
+                    doc.setFillColor(40, 40, 40);
                     doc.rect(0, 0, pageWidth, 22, 'F');
 
                     doc.setTextColor(255, 255, 255);
@@ -71,8 +71,11 @@
                     doc.text('SHRI KRISHNA TEXTILES', pageWidth / 2, 14, { align: 'center' });
 
                     // Party + Date bar
-                    doc.setFillColor(245, 245, 245);
+                    doc.setFillColor(255, 255, 255);
                     doc.rect(0, 22, pageWidth, 12, 'F');
+                    doc.setDrawColor(40, 40, 40);
+                    doc.setLineWidth(0.4);
+                    doc.line(0, 34, pageWidth, 34);
                     doc.setTextColor(0, 0, 0);
                     doc.setFontSize(10);
                     doc.setFont(undefined, 'bold');
