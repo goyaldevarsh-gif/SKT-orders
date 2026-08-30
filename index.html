@@ -61,16 +61,20 @@
                 
                 // Header
                 doc.setFillColor(220, 20, 20);
-                doc.rect(0, 0, pageWidth, 28, 'F');
+                doc.rect(0, 0, pageWidth, 30, 'F');
                 
                 doc.setTextColor(255, 255, 255);
-                doc.setFontSize(16);
+                doc.setFontSize(14);
                 doc.setFont(undefined, 'bold');
-                doc.text('SKT ORDERS', 15, 14);
+                doc.text('SKT ORDERS', 15, 12);
                 
-                doc.setFontSize(9);
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Party: ${order.partyName}`, 15, 21);
+                
+                doc.setFontSize(8);
                 doc.setFont(undefined, 'normal');
-                doc.text(`${order.partyName} | ${order.date}`, 15, 22);
+                doc.text(`Date: ${order.date}`, 15, 27);
                 
                 // Samples (3 columns)
                 const cols = 3;
@@ -319,39 +323,78 @@
                 reader.readAsText(file);
             };
 
-            // HOME SCREEN
+            // HOME SCREEN with TAB navigation
             if (screen === 'home') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col items-center justify-center p-4">
-                        <img src="./icon-192.png" alt="SKT" className="w-24 h-24 mb-6 rounded-full shadow-lg" />
-                        <h1 className="text-3xl font-bold text-red-600 mb-8">SKT Orders</h1>
-                        
-                        <div className="w-full max-w-sm space-y-3">
+                    <div className="min-h-screen bg-white overflow-x-hidden">
+                        {/* Header */}
+                        <div className="bg-gradient-to-b from-red-50 to-white p-6 text-center border-b-2 border-red-600">
+                            <img src="./icon-192.png" alt="SKT" className="w-20 h-20 mx-auto mb-3 rounded-full shadow-lg" />
+                            <h1 className="text-3xl font-bold text-red-600">SKT Orders</h1>
+                            <p className="text-sm text-gray-600 mt-1">Shri Krishna Textiles</p>
+                        </div>
+
+                        {/* Tab Navigation */}
+                        <div className="flex border-b-2 border-gray-200 bg-white sticky top-0 z-10">
                             <button
-                                onClick={() => { setPartyName(''); setCurrentOrderSamples([]); setScreen('neworder'); }}
-                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 px-4 rounded-xl text-lg transition shadow-lg"
+                                onClick={() => setScreen('home')}
+                                className="flex-1 py-4 px-3 text-center font-bold text-red-600 border-b-4 border-red-600 transition"
                             >
-                                ➕ NEW ORDER
+                                📝 NEW ORDER
                             </button>
-                            
                             <button
                                 onClick={() => setScreen('orders')}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-4 rounded-xl text-lg transition shadow-lg"
+                                className="flex-1 py-4 px-3 text-center font-bold text-gray-600 border-b-4 border-transparent hover:text-red-600 transition"
                             >
-                                📋 ORDERS ({orders.length})
+                                📋 ORDERS
                             </button>
+                        </div>
 
-                            <button
-                                onClick={handleBackup}
-                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition"
-                            >
-                                💾 BACKUP
-                            </button>
+                        {/* Content Area */}
+                        <div className="w-full px-4 max-w-2xl mx-auto py-6 pb-20">
+                            {/* NEW ORDER TAB CONTENT */}
+                            <div className="space-y-4">
+                                {/* Quick Actions */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleBackup}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-3 rounded-lg transition text-sm"
+                                    >
+                                        💾 BACKUP
+                                    </button>
+                                    <label className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-3 rounded-lg text-center cursor-pointer transition text-sm">
+                                        📥 RESTORE
+                                        <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
+                                    </label>
+                                </div>
 
-                            <label className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-xl text-center cursor-pointer transition">
-                                📥 RESTORE
-                                <input type="file" accept=".json" onChange={handleRestore} className="hidden" />
-                            </label>
+                                {/* Info Box */}
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                                    <p className="text-sm text-gray-700">
+                                        <strong>Quick Start:</strong> Click the button below to create a new order and start adding samples!
+                                    </p>
+                                </div>
+
+                                {/* Create Order Button */}
+                                <button
+                                    onClick={() => { setPartyName(''); setCurrentOrderSamples([]); setScreen('neworder'); }}
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-5 px-4 rounded-xl text-lg transition shadow-lg"
+                                >
+                                    ➕ CREATE NEW ORDER
+                                </button>
+
+                                {/* Stats */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-gray-100 rounded-lg p-4 text-center">
+                                        <p className="text-2xl font-bold text-red-600">{orders.length}</p>
+                                        <p className="text-xs text-gray-600">Total Orders</p>
+                                    </div>
+                                    <div className="bg-gray-100 rounded-lg p-4 text-center">
+                                        <p className="text-2xl font-bold text-green-600">{orders.filter(o => o.status === 'complete').length}</p>
+                                        <p className="text-xs text-gray-600">Completed</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 );
@@ -413,29 +456,32 @@
                             {/* Photo Preview + Quantity */}
                             {photoPreview && (
                                 <div className="mb-4 bg-white p-4 rounded-lg shadow">
-                                    <img src={photoPreview} alt="Preview" className="w-40 h-40 object-cover rounded-lg mb-3" />
+                                    <div className="text-center mb-3">
+                                        <img src={photoPreview} alt="Preview" className="w-full max-w-xs h-64 object-cover rounded-lg mx-auto" />
+                                    </div>
                                     
-                                    <div className="mb-3">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">📦 Quantity *</label>
                                         <input
                                             type="number"
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
                                             placeholder="Enter quantity"
-                                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-red-600 focus:outline-none text-lg"
+                                            autoFocus
+                                            className="w-full px-3 py-3 border-2 border-red-600 rounded-lg focus:border-red-600 focus:outline-none text-lg font-bold"
                                         />
                                     </div>
 
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleAddSample}
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg"
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-lg"
                                         >
                                             ✓ ADD
                                         </button>
                                         <button
                                             onClick={() => { setPhotoData(null); setPhotoPreview(null); setQuantity(''); }}
-                                            className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg"
+                                            className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-bold py-3 rounded-lg text-lg"
                                         >
                                             ✕ RETAKE
                                         </button>
@@ -552,12 +598,27 @@
                 }
 
                 return (
-                    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-                        <div className="bg-red-600 text-white p-4 flex items-center gap-3 sticky top-0 z-10 shadow">
-                            <button onClick={() => setScreen('home')} className="hover:bg-red-700 p-2 rounded-lg">
-                                ← BACK
+                    <div className="min-h-screen bg-white overflow-x-hidden">
+                        {/* Header */}
+                        <div className="bg-red-600 text-white p-3 flex items-center gap-2 sticky top-0 z-10 shadow">
+                            <img src="./icon-192.png" alt="SKT" className="w-6 h-6 rounded" />
+                            <h1 className="text-lg font-bold flex-1 truncate">SKT Orders</h1>
+                        </div>
+
+                        {/* Tab Navigation */}
+                        <div className="flex border-b-2 border-gray-200 bg-white sticky top-12 z-10">
+                            <button
+                                onClick={() => setScreen('home')}
+                                className="flex-1 py-4 px-3 text-center font-bold text-gray-600 border-b-4 border-transparent hover:text-red-600 transition text-sm"
+                            >
+                                📝 NEW ORDER
                             </button>
-                            <h1 className="text-xl font-bold flex-1 truncate">📋 Orders ({orders.length})</h1>
+                            <button
+                                onClick={() => setScreen('orders')}
+                                className="flex-1 py-4 px-3 text-center font-bold text-red-600 border-b-4 border-red-600 transition text-sm"
+                            >
+                                📋 ORDERS ({orders.length})
+                            </button>
                         </div>
 
                         <div className="w-full px-3 max-w-2xl mx-auto py-4 pb-20">
