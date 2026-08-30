@@ -248,7 +248,7 @@
                         const order = {
                             id: Date.now(),
                             partyName,
-                            orderNumber: Math.floor(100000 + Math.random() * 900000),
+                            orderNumber: orders.length > 0 ? Math.max(...orders.map(o => o.orderNumber || 0)) + 1 : 1001,
                             date: new Date().toLocaleDateString(),
                             samples: currentOrderSamples,
                             status: 'pending'
@@ -554,13 +554,14 @@
                                 <h3 className="font-bold text-gray-800 mb-2">📦 Samples Added ({currentOrderSamples.length})</h3>
                                 <div className="space-y-2">
                                     {currentOrderSamples.map((sample, idx) => (
-                                        <div key={sample.id} className="bg-white p-3 rounded-lg flex justify-between items-center shadow">
-                                            <span className="font-semibold">Qty: <span className="text-red-600">{sample.quantity}</span></span>
+                                        <div key={sample.id} className="bg-white p-2 rounded-lg flex items-center gap-3 shadow">
+                                            <img src={sample.photo} alt="Sample" className="w-14 h-14 object-cover rounded-lg" />
+                                            <span className="flex-1 font-semibold">{idx + 1}. Qty: <span className="text-red-600">{sample.quantity}</span></span>
                                             <button
                                                 onClick={() => setCurrentOrderSamples(currentOrderSamples.filter(s => s.id !== sample.id))}
-                                                className="text-red-600 hover:bg-red-50 px-3 py-1 rounded"
+                                                className="text-red-600 hover:bg-red-50 px-3 py-2 rounded"
                                             >
-                                                🗑️ DELETE
+                                                🗑️
                                             </button>
                                         </div>
                                     ))}
