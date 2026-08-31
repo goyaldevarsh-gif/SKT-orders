@@ -186,14 +186,35 @@
 
             const handlePhotoCapture = (e) => {
                 const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        setPhotoData(event.target.result);
-                        setPhotoPreview(event.target.result);
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Compress: max 900px on longer side, JPEG quality 0.6
+                        const maxSize = 900;
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > h && w > maxSize) {
+                            h = Math.round(h * (maxSize / w));
+                            w = maxSize;
+                        } else if (h > maxSize) {
+                            w = Math.round(w * (maxSize / h));
+                            h = maxSize;
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.6);
+                        setPhotoData(compressed);
+                        setPhotoPreview(compressed);
                     };
-                    reader.readAsDataURL(file);
-                }
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
             };
 
             const handleAddSample = () => {
@@ -524,10 +545,10 @@
                                     <div className="mb-4">
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">📦 Quantity *</label>
                                         <input
-                                            type="number"
+                                            type="text"
                                             value={quantity}
                                             onChange={(e) => setQuantity(e.target.value)}
-                                            placeholder="Enter quantity"
+                                            placeholder="e.g. 5 or 5-5-5 or 5 peela 5 chudni"
                                             autoFocus
                                             className="w-full px-3 py-3 border-2 border-red-600 rounded-lg focus:border-red-600 focus:outline-none text-lg font-bold"
                                         />
